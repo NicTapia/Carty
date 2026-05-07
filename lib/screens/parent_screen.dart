@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/sample_mission.dart';
 import '../models/product_item.dart';
+import '../services/mission_storage_service.dart';
 import 'explorer_screen.dart';
 
 class ParentScreen extends StatefulWidget {
@@ -14,12 +15,19 @@ class ParentScreen extends StatefulWidget {
 class _ParentScreenState extends State<ParentScreen> {
   final TextEditingController _customProductController =
       TextEditingController();
-  final List<ProductItem> _missionProducts = List.from(sampleProducts);
+  final MissionStorageService _storageService = MissionStorageService();
+  List<ProductItem> _missionProducts = List.from(sampleProducts);
 
   ProductCategory _selectedCategory = productCategories.first;
   String? _selectedReward;
   String? _savedReward;
   bool _missionSaved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedMission();
+  }
 
   @override
   void dispose() {
@@ -64,6 +72,22 @@ class _ParentScreenState extends State<ParentScreen> {
     });
   }
 
+  Future<void> _loadSavedMission() async {
+    final savedMission = await _storageService.loadMission();
+
+    if (!mounted || savedMission == null) {
+      return;
+    }
+
+    setState(() {
+      _missionProducts = savedMission.products;
+      _selectedReward = savedMission.reward;
+      _savedReward = savedMission.reward;
+      _missionSaved =
+          savedMission.products.isNotEmpty && savedMission.reward.isNotEmpty;
+    });
+  }
+
   void _selectReward(String reward) {
     setState(() {
       _selectedReward = reward;
@@ -72,9 +96,24 @@ class _ParentScreenState extends State<ParentScreen> {
     });
   }
 
-  void _saveMission() {
+  Future<void> _saveMission() async {
+    final reward = _selectedReward;
+
+    if (reward == null) {
+      return;
+    }
+
+    await _storageService.saveMission(
+      products: _missionProducts,
+      reward: reward,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
-      _savedReward = _selectedReward;
+      _savedReward = reward;
       _missionSaved = true;
     });
 
@@ -83,24 +122,45 @@ class _ParentScreenState extends State<ParentScreen> {
     ).showSnackBar(const SnackBar(content: Text('Misión guardada')));
   }
 
-  void _startExplorerMode() {
+  Future<void> _clearMission() async {
+    await _storageService.clearMission();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _missionProducts = [];
+      _selectedReward = null;
+      _savedReward = null;
+      _missionSaved = false;
+    });
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Misión limpia')));
+  }
+
+  Future<void> _startExplorerMode() async {
     final reward = _savedReward;
 
     if (reward == null) {
       return;
     }
 
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ExplorerScreen(
           products: _missionProducts
-              .map((product) => product.copyWith(isFound: false))
+              .map((product) => product.copyWith())
               .toList(),
           reward: reward,
         ),
       ),
     );
+
+    await _loadSavedMission();
   }
 
   @override
@@ -108,6 +168,8 @@ class _ParentScreenState extends State<ParentScreen> {
     final canSaveMission =
         _missionProducts.isNotEmpty && _selectedReward != null;
     final canStartMission = _missionSaved && _savedReward != null;
+    final canClearMission =
+        _missionProducts.isNotEmpty || _selectedReward != null || _missionSaved;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF7E8),
@@ -347,6 +409,18 @@ class _ParentScreenState extends State<ParentScreen> {
                 label: const Text(
                   'Iniciar modo explorador',
                   style: TextStyle(fontSize: 17),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: canClearMission ? _clearMission : null,
+                icon: const Icon(Icons.restart_alt),
+                label: const Text(
+                  'Limpiar misión',
+                  style: TextStyle(fontSize: 16),
                 ),
               ),
             ),

@@ -16,4 +16,16 @@ class ProductItem {
       isFound: isFound ?? this.isFound,
     );
   }
+
+  Map<String, Object> toJson() {
+    return {'name': name, 'emoji': emoji, 'isFound': isFound};
+  }
+
+  factory ProductItem.fromJson(Map<String, dynamic> json) {
+    return ProductItem(
+      name: json['name'] as String? ?? '',
+      emoji: json['emoji'] as String? ?? '🛒',
+      isFound: json['isFound'] as bool? ?? false,
+    );
+  }
 }

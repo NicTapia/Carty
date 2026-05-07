@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/product_item.dart';
+import '../services/mission_storage_service.dart';
 import '../widgets/progress_reward_bar.dart';
 import 'success_screen.dart';
 
@@ -19,6 +20,7 @@ class ExplorerScreen extends StatefulWidget {
 }
 
 class _ExplorerScreenState extends State<ExplorerScreen> {
+  final MissionStorageService _storageService = MissionStorageService();
   late List<ProductItem> products;
 
   @override
@@ -43,7 +45,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
     return products.where((product) => product.isFound).toList();
   }
 
-  void simulateProductFound(ProductItem product) {
+  Future<void> simulateProductFound(ProductItem product) async {
     if (!product.isFound) {
       setState(() {
         products = products
@@ -54,6 +56,15 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
             )
             .toList();
       });
+
+      await _storageService.saveMission(
+        products: products,
+        reward: widget.reward,
+      );
+
+      if (!mounted) {
+        return;
+      }
 
       if (foundProducts.length == widget.products.length) {
         Future.delayed(const Duration(milliseconds: 400), () {
@@ -83,7 +94,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  '¿Qué producto apareció en la foto?',
+                  '¿Qué producto encontraste?',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
