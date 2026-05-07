@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../data/sample_mission.dart';
 import '../models/product_item.dart';
 import '../services/mission_storage_service.dart';
+import '../theme/product_visual_style.dart';
+import '../widgets/app_background.dart';
 import 'explorer_screen.dart';
 
 class ParentScreen extends StatefulWidget {
@@ -165,267 +167,578 @@ class _ParentScreenState extends State<ParentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final availableSuggestedProducts = suggestedProducts.where((product) {
+      return !_missionProducts.any(
+        (item) =>
+            item.name.trim().toLowerCase() == product.name.trim().toLowerCase(),
+      );
+    }).toList();
     final canSaveMission =
         _missionProducts.isNotEmpty && _selectedReward != null;
     final canStartMission = _missionSaved && _savedReward != null;
     final canClearMission =
         _missionProducts.isNotEmpty || _selectedReward != null || _missionSaved;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFF7E8),
-      appBar: AppBar(
-        title: const Text('Modo Padre'),
+    return AppBackground(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          children: [
-            const Text(
-              '🛒 Carty',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Arma una misión simple y visual para comprar jugando.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 17, color: Colors.black54),
-            ),
-            const SizedBox(height: 24),
-            _ParentPanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _SectionTitle(title: 'Productos sugeridos'),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: suggestedProducts.map((product) {
-                      final isSelected = _missionProducts.any(
-                        (item) =>
-                            item.name.trim().toLowerCase() ==
-                            product.name.trim().toLowerCase(),
-                      );
-
-                      return ActionChip(
-                        avatar: Text(
-                          product.emoji,
-                          style: const TextStyle(fontSize: 22),
-                        ),
-                        label: Text(product.name),
-                        labelStyle: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected
-                              ? Colors.green.shade800
-                              : Colors.brown.shade800,
-                        ),
-                        side: BorderSide(
-                          color: isSelected
-                              ? Colors.green.shade200
-                              : Colors.orange.shade100,
-                        ),
-                        backgroundColor: isSelected
-                            ? Colors.green.shade50
-                            : Colors.orange.shade50,
-                        onPressed: () => _addProduct(product),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            _ParentPanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _SectionTitle(title: 'Producto personalizado'),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<ProductCategory>(
-                    initialValue: _selectedCategory,
-                    decoration: const InputDecoration(
-                      labelText: 'Categoría',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: productCategories.map((category) {
-                      return DropdownMenuItem(
-                        value: category,
-                        child: Text('${category.emoji} ${category.name}'),
-                      );
-                    }).toList(),
-                    onChanged: (category) {
-                      if (category == null) {
-                        return;
-                      }
-
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _customProductController,
-                          decoration: const InputDecoration(
-                            labelText: 'Nombre del producto',
-                            border: OutlineInputBorder(),
-                          ),
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => _addCustomProduct(),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      SizedBox(
-                        height: 56,
-                        child: FilledButton(
-                          onPressed: _addCustomProduct,
-                          child: const Icon(Icons.add),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            _ParentPanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Lista actual (${_missionProducts.length})',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (_missionProducts.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text(
-                        'Agrega productos para empezar la misión.',
-                        style: TextStyle(fontSize: 16, color: Colors.black54),
-                      ),
-                    ),
-                  ..._missionProducts.map(
-                    (product) => Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFFBF3),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.orange.shade100),
-                      ),
-                      child: ListTile(
-                        leading: Text(
-                          product.emoji,
-                          style: const TextStyle(fontSize: 32),
-                        ),
-                        title: Text(
-                          product.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        trailing: IconButton(
-                          tooltip: 'Eliminar',
-                          onPressed: () => _removeProduct(product),
-                          icon: const Icon(Icons.delete_outline),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            _ParentPanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _SectionTitle(title: 'Elige la recompensa'),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: missionRewards.map((reward) {
-                      final isSelected = _selectedReward == reward;
-
-                      return ChoiceChip(
-                        selected: isSelected,
-                        label: Text(reward),
-                        labelStyle: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: isSelected
-                              ? Colors.green.shade900
-                              : Colors.brown.shade800,
-                        ),
-                        selectedColor: Colors.green.shade100,
-                        backgroundColor: Colors.orange.shade50,
-                        side: BorderSide(
-                          color: isSelected
-                              ? Colors.green.shade400
-                              : Colors.orange.shade100,
-                          width: isSelected ? 2 : 1,
-                        ),
-                        checkmarkColor: Colors.green.shade900,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        onSelected: (_) => _selectReward(reward),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            SizedBox(
-              height: 56,
-              child: FilledButton.icon(
-                onPressed: canSaveMission ? _saveMission : null,
-                icon: const Icon(Icons.save_alt),
-                label: const Text(
-                  'Guardar misión',
-                  style: TextStyle(fontSize: 17),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 56,
-              child: ElevatedButton.icon(
-                onPressed: canStartMission ? _startExplorerMode : null,
-                icon: const Icon(Icons.explore),
-                label: const Text(
-                  'Iniciar modo explorador',
-                  style: TextStyle(fontSize: 17),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 52,
-              child: OutlinedButton.icon(
-                onPressed: canClearMission ? _clearMission : null,
-                icon: const Icon(Icons.restart_alt),
-                label: const Text(
-                  'Limpiar misión',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-          ],
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(178),
+          child: _buildMissionHeader(),
         ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+            children: [
+              _buildProductSelector(availableSuggestedProducts),
+              const SizedBox(height: 16),
+              _buildShoppingList(),
+              const SizedBox(height: 16),
+              _buildCustomProductSection(),
+              const SizedBox(height: 16),
+              _buildRewardSection(),
+              const SizedBox(height: 20),
+              _buildActions(canSaveMission, canStartMission, canClearMission),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMissionHeader() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF16C7D9), Color(0xFF536DFE), Color(0xFFE45DBF)],
+        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF536DFE).withValues(alpha: 0.24),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+          child: Row(
+            children: [
+              Container(
+                width: 116,
+                height: 116,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.24),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.54),
+                  ),
+                ),
+                child: Image.asset(
+                  'assets/images/carty_panda_2.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Text('🐼', style: TextStyle(fontSize: 56)),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.26),
+                        ),
+                      ),
+                      child: const Text(
+                        'Modo Padre',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Crea la misión de compra',
+                      style: TextStyle(
+                        fontSize: 23,
+                        height: 1.05,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    const Text(
+                      'Agrega productos y prepara una aventura para tus hijos',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.22,
+                        color: Color(0xFFFDF2FF),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductSelector(List<ProductItem> availableSuggestedProducts) {
+    return _ParentPanel(
+      padding: const EdgeInsets.all(16),
+      backgroundColor: const Color(0xEFFFF1E8),
+      borderColor: const Color(0xFFFFB995),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFFF2E8), Color(0xFFFFDCCB)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Agregar productos',
+            subtitle: 'Selecciona productos sugeridos para la misión',
+            titleSize: 18,
+          ),
+          const SizedBox(height: 12),
+          if (availableSuggestedProducts.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF8EE),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFB9DEB5)),
+              ),
+              child: const Text(
+                'Ya agregaste todos los productos sugeridos.',
+                style: TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF35613A),
+                ),
+              ),
+            )
+          else
+            DropdownButtonFormField<ProductItem>(
+              key: ValueKey(
+                availableSuggestedProducts
+                    .map((product) => product.name)
+                    .join('|'),
+              ),
+              decoration: _inputDecoration(
+                label: 'Seleccionar producto',
+                icon: Icons.shopping_basket_outlined,
+                compact: true,
+                fillColor: Colors.white,
+                borderColor: const Color(0xFFFFB995),
+                iconColor: const Color(0xFFFF7A3D),
+              ),
+              dropdownColor: Colors.white,
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Color(0xFF7A3B24),
+              ),
+              items: availableSuggestedProducts.map((product) {
+                return DropdownMenuItem(
+                  value: product,
+                  child: Text('${product.emoji} ${product.name}'),
+                );
+              }).toList(),
+              onChanged: (product) {
+                if (product == null) {
+                  return;
+                }
+
+                _addProduct(product);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShoppingList() {
+    final productCount = _missionProducts.length;
+    final subtitle = productCount == 1
+        ? '1 producto agregado'
+        : '$productCount productos agregados';
+
+    return _ParentPanel(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
+      backgroundColor: const Color(0xEFF0F8FF),
+      borderColor: const Color(0xFFB7D8FF),
+      shadowOpacity: 0.12,
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFF3FAFF), Color(0xFFE3F1FF)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: _SectionHeader(
+                  title: 'Lista de compra',
+                  subtitle: '',
+                  titleSize: 23,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF57D68D), Color(0xFF20BBD3)],
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF20BBD3).withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  '$productCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF7A624D),
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (_missionProducts.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBF3),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFFFD9A3)),
+              ),
+              child: const Text(
+                'Agrega productos para empezar la misión.',
+                style: TextStyle(fontSize: 15.5, color: Colors.black54),
+              ),
+            )
+          else
+            ..._missionProducts.map(_buildShoppingListItem),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShoppingListItem(ProductItem product) {
+    final style = productVisualStyleFor(product);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: style.backgroundColor,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: style.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: style.borderColor.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: style.emojiBackgroundColor,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(product.emoji, style: const TextStyle(fontSize: 29)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              product.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF4F321B),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Eliminar',
+            onPressed: () => _removeProduct(product),
+            icon: const Icon(Icons.close_rounded),
+            color: const Color(0xFF9A6A42),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white.withValues(alpha: 0.76),
+              fixedSize: const Size(36, 36),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomProductSection() {
+    return _ParentPanel(
+      padding: const EdgeInsets.all(14),
+      backgroundColor: const Color(0xEFFFF1E8),
+      borderColor: const Color(0xFFFFB995),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFFF2E8), Color(0xFFFFDCCB)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Producto personalizado',
+            subtitle: 'Agrega algo que no esté en las sugerencias',
+            titleSize: 17,
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<ProductCategory>(
+            initialValue: _selectedCategory,
+            decoration: _inputDecoration(
+              label: 'Categoría',
+              icon: Icons.category_outlined,
+              compact: true,
+              fillColor: const Color(0xFFFFFFFF),
+              borderColor: const Color(0xFFFFB995),
+              iconColor: const Color(0xFFFF7A3D),
+            ),
+            items: productCategories.map((category) {
+              return DropdownMenuItem(
+                value: category,
+                child: Text('${category.emoji} ${category.name}'),
+              );
+            }).toList(),
+            onChanged: (category) {
+              if (category == null) {
+                return;
+              }
+
+              setState(() {
+                _selectedCategory = category;
+              });
+            },
+          ),
+          const SizedBox(height: 9),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _customProductController,
+                  decoration: _inputDecoration(
+                    label: 'Nombre del producto',
+                    icon: Icons.edit_outlined,
+                    compact: true,
+                    fillColor: const Color(0xFFFFFFFF),
+                    borderColor: const Color(0xFFFFB995),
+                    iconColor: const Color(0xFFFF7A3D),
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _addCustomProduct(),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                height: 48,
+                child: FilledButton(
+                  onPressed: _addCustomProduct,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF7A3D),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  child: const Icon(Icons.add_rounded),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRewardSection() {
+    final selectedReward = missionRewards.contains(_selectedReward)
+        ? _selectedReward
+        : null;
+
+    return _ParentPanel(
+      padding: const EdgeInsets.all(16),
+      backgroundColor: const Color(0xFFFFE8F6),
+      borderColor: const Color(0xFFFF91CF),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFFE8F6), Color(0xFFEFE8FF)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: '🎁 Recompensa',
+            subtitle: 'Elige qué se desbloquea al completar la misión',
+            titleSize: 18.5,
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            initialValue: selectedReward,
+            decoration: _inputDecoration(
+              label: 'Seleccionar recompensa',
+              icon: Icons.card_giftcard_rounded,
+              compact: true,
+              fillColor: Colors.white,
+              borderColor: const Color(0xFFFFA7D3),
+              iconColor: const Color(0xFFE44EA7),
+            ),
+            dropdownColor: Colors.white,
+            icon: const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Color(0xFF6D2F66),
+            ),
+            items: missionRewards.map((reward) {
+              return DropdownMenuItem(value: reward, child: Text(reward));
+            }).toList(),
+            onChanged: (reward) {
+              if (reward == null) {
+                return;
+              }
+
+              _selectReward(reward);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActions(
+    bool canSaveMission,
+    bool canStartMission,
+    bool canClearMission,
+  ) {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 58,
+          child: FilledButton.icon(
+            onPressed: canSaveMission ? _saveMission : null,
+            icon: const Icon(Icons.save_alt_rounded),
+            label: const Text(
+              'Guardar misión',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: ElevatedButton.icon(
+            onPressed: canStartMission ? _startExplorerMode : null,
+            icon: const Icon(Icons.explore_rounded),
+            label: const Text(
+              'Iniciar modo explorador',
+              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: OutlinedButton.icon(
+            onPressed: canClearMission ? _clearMission : null,
+            icon: const Icon(Icons.restart_alt_rounded),
+            label: const Text(
+              'Limpiar misión',
+              style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    required IconData icon,
+    bool compact = false,
+    Color fillColor = const Color(0xFFFFFCF7),
+    Color borderColor = const Color(0xFFFFD9A3),
+    Color iconColor = const Color(0xFF9A6A42),
+  }) {
+    return InputDecoration(
+      isDense: compact,
+      labelText: label,
+      prefixIcon: Icon(icon, color: iconColor),
+      filled: true,
+      fillColor: fillColor,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: iconColor, width: 2),
       ),
     );
   }
@@ -433,21 +746,37 @@ class _ParentScreenState extends State<ParentScreen> {
 
 class _ParentPanel extends StatelessWidget {
   final Widget child;
+  final EdgeInsetsGeometry padding;
+  final Color backgroundColor;
+  final Color? borderColor;
+  final Gradient? gradient;
+  final double shadowOpacity;
 
-  const _ParentPanel({required this.child});
+  const _ParentPanel({
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
+    this.backgroundColor = const Color(0xDBFFFDF8),
+    this.borderColor,
+    this.gradient,
+    this.shadowOpacity = 0.065,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: backgroundColor,
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: borderColor ?? const Color(0xFFFFD9A3).withValues(alpha: 0.7),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: shadowOpacity),
+            blurRadius: 20,
+            offset: const Offset(0, 9),
           ),
         ],
       ),
@@ -456,16 +785,44 @@ class _ParentPanel extends StatelessWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
   final String title;
+  final String subtitle;
+  final double titleSize;
 
-  const _SectionTitle({required this.title});
+  const _SectionHeader({
+    required this.title,
+    required this.subtitle,
+    this.titleSize = 19,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: titleSize,
+            height: 1.05,
+            color: const Color(0xFF4F321B),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        if (subtitle.isNotEmpty) ...[
+          const SizedBox(height: 5),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14.5,
+              height: 1.25,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF7A624D),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

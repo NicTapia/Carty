@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/parent_screen.dart';
+import 'screens/welcome_screen.dart';
 
 void main() {
   runApp(const CartyApp());
@@ -18,7 +18,7 @@ class CartyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,
       ),
-      home: const ParentScreen(),
+      home: const WelcomeScreen(),
     );
   }
 }
