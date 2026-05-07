@@ -17,6 +17,9 @@ class _ParentScreenState extends State<ParentScreen> {
   final List<ProductItem> _missionProducts = List.from(sampleProducts);
 
   ProductCategory _selectedCategory = productCategories.first;
+  String? _selectedReward;
+  String? _savedReward;
+  bool _missionSaved = false;
 
   @override
   void dispose() {
@@ -36,6 +39,8 @@ class _ParentScreenState extends State<ParentScreen> {
 
     setState(() {
       _missionProducts.add(product.copyWith(isFound: false));
+      _missionSaved = false;
+      _savedReward = null;
     });
   }
 
@@ -54,10 +59,37 @@ class _ParentScreenState extends State<ParentScreen> {
   void _removeProduct(ProductItem product) {
     setState(() {
       _missionProducts.remove(product);
+      _missionSaved = false;
+      _savedReward = null;
     });
   }
 
+  void _selectReward(String reward) {
+    setState(() {
+      _selectedReward = reward;
+      _missionSaved = false;
+      _savedReward = null;
+    });
+  }
+
+  void _saveMission() {
+    setState(() {
+      _savedReward = _selectedReward;
+      _missionSaved = true;
+    });
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Misión guardada')));
+  }
+
   void _startExplorerMode() {
+    final reward = _savedReward;
+
+    if (reward == null) {
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -65,7 +97,7 @@ class _ParentScreenState extends State<ParentScreen> {
           products: _missionProducts
               .map((product) => product.copyWith(isFound: false))
               .toList(),
-          reward: sampleReward,
+          reward: reward,
         ),
       ),
     );
@@ -73,7 +105,9 @@ class _ParentScreenState extends State<ParentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canStartMission = _missionProducts.isNotEmpty;
+    final canSaveMission =
+        _missionProducts.isNotEmpty && _selectedReward != null;
+    final canStartMission = _missionSaved && _savedReward != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF7E8),
@@ -250,6 +284,61 @@ class _ParentScreenState extends State<ParentScreen> {
               ),
             ),
             const SizedBox(height: 18),
+            _ParentPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SectionTitle(title: 'Elige la recompensa'),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: missionRewards.map((reward) {
+                      final isSelected = _selectedReward == reward;
+
+                      return ChoiceChip(
+                        selected: isSelected,
+                        label: Text(reward),
+                        labelStyle: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: isSelected
+                              ? Colors.green.shade900
+                              : Colors.brown.shade800,
+                        ),
+                        selectedColor: Colors.green.shade100,
+                        backgroundColor: Colors.orange.shade50,
+                        side: BorderSide(
+                          color: isSelected
+                              ? Colors.green.shade400
+                              : Colors.orange.shade100,
+                          width: isSelected ? 2 : 1,
+                        ),
+                        checkmarkColor: Colors.green.shade900,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        onSelected: (_) => _selectReward(reward),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              height: 56,
+              child: FilledButton.icon(
+                onPressed: canSaveMission ? _saveMission : null,
+                icon: const Icon(Icons.save_alt),
+                label: const Text(
+                  'Guardar misión',
+                  style: TextStyle(fontSize: 17),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             SizedBox(
               height: 56,
               child: ElevatedButton.icon(

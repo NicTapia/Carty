@@ -28,6 +28,10 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
   }
 
   double get progress {
+    if (widget.products.isEmpty) {
+      return 0;
+    }
+
     return foundProducts.length / widget.products.length;
   }
 
@@ -133,6 +137,24 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
             const SizedBox(height: 24),
             ProgressRewardBar(progress: progress, reward: widget.reward),
             const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.orange.shade100),
+              ),
+              child: Text(
+                'Recompensa: ${widget.reward}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             Text(
               '${foundProducts.length}/${widget.products.length} productos encontrados',
               style: const TextStyle(fontSize: 16),
@@ -192,8 +214,11 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
               height: 56,
               child: ElevatedButton.icon(
                 onPressed: showSimulatedDetection,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Sacar foto', style: TextStyle(fontSize: 17)),
+                icon: const Icon(Icons.search),
+                label: const Text(
+                  'Simular hallazgo',
+                  style: TextStyle(fontSize: 17),
+                ),
               ),
             ),
           ],

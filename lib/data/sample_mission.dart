@@ -8,8 +8,6 @@ const sampleProducts = [
   ProductItem(name: 'Manzana', emoji: '🍎'),
 ];
 
-const sampleReward = 'Chocolate 🍫';
-
 const suggestedProducts = [
   ProductItem(name: 'Leche', emoji: '🥛'),
   ProductItem(name: 'Pan', emoji: '🍞'),
@@ -30,6 +28,15 @@ const productCategories = [
   ProductCategory(name: 'Limpieza', emoji: '🧼'),
   ProductCategory(name: 'Higiene', emoji: '🧴'),
   ProductCategory(name: 'Mascotas', emoji: '🐶'),
+];
+
+const missionRewards = [
+  '🍫 Chocolate',
+  '🍦 Helado',
+  '🎬 Elegir película',
+  '🎮 Tiempo de juego',
+  '🛝 Salida al parque',
+  '⭐ Sorpresa',
 ];
 
 class ProductCategory {
