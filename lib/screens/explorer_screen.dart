@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/product_item.dart';
 import '../services/mission_storage_service.dart';
@@ -20,8 +22,11 @@ class ExplorerScreen extends StatefulWidget {
 }
 
 class _ExplorerScreenState extends State<ExplorerScreen> {
+  final ImagePicker _imagePicker = ImagePicker();
   final MissionStorageService _storageService = MissionStorageService();
   late List<ProductItem> products;
+  Uint8List? _lastPhotoBytes;
+  bool _isOpeningCamera = false;
 
   @override
   void initState() {
@@ -43,6 +48,59 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
 
   List<ProductItem> get foundProducts {
     return products.where((product) => product.isFound).toList();
+  }
+
+  Future<void> takePhoto() async {
+    if (_isOpeningCamera) {
+      return;
+    }
+
+    setState(() {
+      _isOpeningCamera = true;
+    });
+
+    try {
+      final photo = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 1400,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (photo == null) {
+        _showMessage('Cámara cancelada');
+        return;
+      }
+
+      final photoBytes = await photo.readAsBytes();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _lastPhotoBytes = photoBytes;
+      });
+
+      showSimulatedDetection();
+    } on PlatformException {
+      if (mounted) {
+        _showMessage('No se pudo abrir la cámara');
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage('No se pudo tomar la foto');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isOpeningCamera = false;
+        });
+      }
+    }
   }
 
   Future<void> simulateProductFound(ProductItem product) async {
@@ -81,6 +139,12 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
         });
       }
     }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void showSimulatedDetection() {
@@ -174,6 +238,47 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
             Expanded(
               child: ListView(
                 children: [
+                  if (_lastPhotoBytes != null) ...[
+                    Container(
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.orange.shade100),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AspectRatio(
+                            aspectRatio: 4 / 3,
+                            child: Image.memory(
+                              _lastPhotoBytes!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: Text(
+                              'Última foto tomada',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                  ],
                   const Text(
                     'Productos pendientes:',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -224,11 +329,13 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: showSimulatedDetection,
-                icon: const Icon(Icons.search),
-                label: const Text(
-                  'Simular hallazgo',
-                  style: TextStyle(fontSize: 17),
+                onPressed: pendingProducts.isEmpty || _isOpeningCamera
+                    ? null
+                    : takePhoto,
+                icon: const Icon(Icons.camera_alt),
+                label: Text(
+                  _isOpeningCamera ? 'Abriendo cámara...' : 'Sacar foto',
+                  style: const TextStyle(fontSize: 17),
                 ),
               ),
             ),
