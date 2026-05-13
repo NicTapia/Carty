@@ -69,19 +69,12 @@ class MissionStorageService {
     final existingIndex = missions.indexWhere(
       (savedMission) => savedMission.id == normalizedMission.id,
     );
-    final activeIndex = missions.indexWhere((savedMission) {
-      return normalizedMission.isActive &&
-          savedMission.isActive &&
-          !savedMission.completed;
-    });
-    final updatedMissions = [...missions];
+    final updatedMissions = normalizedMission.isActive
+        ? missions.map((mission) => mission.copyWith(isActive: false)).toList()
+        : [...missions];
 
     if (existingIndex == -1) {
-      if (activeIndex == -1) {
-        updatedMissions.add(normalizedMission);
-      } else {
-        updatedMissions[activeIndex] = normalizedMission;
-      }
+      updatedMissions.add(normalizedMission);
     } else {
       updatedMissions[existingIndex] = normalizedMission;
     }

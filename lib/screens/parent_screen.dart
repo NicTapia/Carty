@@ -10,7 +10,9 @@ import '../widgets/app_background.dart';
 import 'explorer_screen.dart';
 
 class ParentScreen extends StatefulWidget {
-  const ParentScreen({super.key});
+  final bool createNewMission;
+
+  const ParentScreen({super.key, this.createNewMission = false});
 
   @override
   State<ParentScreen> createState() => _ParentScreenState();
@@ -31,7 +33,9 @@ class _ParentScreenState extends State<ParentScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSavedMission();
+    if (!widget.createNewMission) {
+      _loadSavedMission();
+    }
   }
 
   @override
