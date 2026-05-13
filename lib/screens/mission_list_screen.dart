@@ -67,6 +67,17 @@ class _MissionListScreenState extends State<MissionListScreen> {
     }
   }
 
+  Future<void> _editMission(ShoppingMission mission) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ParentScreen(initialMission: mission)),
+    );
+
+    if (mounted) {
+      _refreshMissions();
+    }
+  }
+
   Future<void> _deleteMission(ShoppingMission mission) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -155,6 +166,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
                   return _MissionCard(
                     mission: missions[index],
                     onTap: () => _continueMission(missions[index]),
+                    onEdit: () => _editMission(missions[index]),
                     onDelete: () => _deleteMission(missions[index]),
                   );
                 },
@@ -347,11 +359,13 @@ class _MissionListScreenState extends State<MissionListScreen> {
 class _MissionCard extends StatelessWidget {
   final ShoppingMission mission;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _MissionCard({
     required this.mission,
     required this.onTap,
+    required this.onEdit,
     required this.onDelete,
   });
 
@@ -433,15 +447,31 @@ class _MissionCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Eliminar misión',
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_outline_rounded),
-                    color: const Color(0xFF9A4A68),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.72),
-                      fixedSize: const Size(40, 40),
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Editar misión',
+                        onPressed: onEdit,
+                        icon: const Icon(Icons.edit_rounded),
+                        color: const Color(0xFF536DFE),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.72),
+                          fixedSize: const Size(40, 40),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton(
+                        tooltip: 'Eliminar misión',
+                        onPressed: onDelete,
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        color: const Color(0xFF9A4A68),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.72),
+                          fixedSize: const Size(40, 40),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

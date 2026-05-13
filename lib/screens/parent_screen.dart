@@ -11,8 +11,13 @@ import 'explorer_screen.dart';
 
 class ParentScreen extends StatefulWidget {
   final bool createNewMission;
+  final ShoppingMission? initialMission;
 
-  const ParentScreen({super.key, this.createNewMission = false});
+  const ParentScreen({
+    super.key,
+    this.createNewMission = false,
+    this.initialMission,
+  });
 
   @override
   State<ParentScreen> createState() => _ParentScreenState();
@@ -32,11 +37,17 @@ class _ParentScreenState extends State<ParentScreen> {
   bool _missionSaved = false;
   bool _isUpdatingMissionTitle = false;
 
+  bool get _isEditingMission => widget.initialMission != null;
+
   @override
   void initState() {
     super.initState();
     _missionTitleController.addListener(_handleMissionTitleChanged);
-    if (!widget.createNewMission) {
+    final initialMission = widget.initialMission;
+
+    if (initialMission != null) {
+      _loadMissionIntoForm(initialMission);
+    } else if (!widget.createNewMission) {
       _loadSavedMission();
     }
   }
@@ -113,6 +124,16 @@ class _ParentScreenState extends State<ParentScreen> {
     _isUpdatingMissionTitle = false;
   }
 
+  void _loadMissionIntoForm(ShoppingMission mission) {
+    _activeMission = mission;
+    _setMissionTitleText(mission.displayTitle);
+    _missionProducts = mission.products;
+    _selectedReward = mission.rewardDisplayText;
+    _savedReward = mission.rewardDisplayText;
+    _missionSaved =
+        mission.products.isNotEmpty && mission.rewardName.isNotEmpty;
+  }
+
   Future<void> _loadSavedMission() async {
     final savedMission = await _storageService.loadMission();
 
@@ -132,14 +153,7 @@ class _ParentScreenState extends State<ParentScreen> {
     }
 
     setState(() {
-      _activeMission = savedMission;
-      _setMissionTitleText(savedMission.displayTitle);
-      _missionProducts = savedMission.products;
-      _selectedReward = savedMission.rewardDisplayText;
-      _savedReward = savedMission.rewardDisplayText;
-      _missionSaved =
-          savedMission.products.isNotEmpty &&
-          savedMission.rewardName.isNotEmpty;
+      _loadMissionIntoForm(savedMission);
     });
   }
 
@@ -164,6 +178,7 @@ class _ParentScreenState extends State<ParentScreen> {
         .map((product) => product.withGeneratedIdIfNeeded())
         .toList();
     final activeMission = _activeMission;
+    final completed = missionProducts.every((product) => product.isFound);
     final mission = activeMission == null
         ? ShoppingMission.create(
             title: missionTitle,
@@ -176,8 +191,8 @@ class _ParentScreenState extends State<ParentScreen> {
             products: missionProducts,
             rewardName: reward.name,
             rewardEmoji: reward.emoji,
-            completed: false,
-            isActive: true,
+            completed: completed,
+            isActive: _isEditingMission ? activeMission.isActive : true,
             updatedAt: DateTime.now(),
           );
 
@@ -196,7 +211,7 @@ class _ParentScreenState extends State<ParentScreen> {
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Misión guardada')));
+    ).showSnackBar(SnackBar(content: Text(_savedMessage)));
   }
 
   Future<void> _clearMission() async {
@@ -253,6 +268,7 @@ class _ParentScreenState extends State<ParentScreen> {
         _missionProducts.isNotEmpty ||
         _selectedReward != null ||
         _missionSaved;
+    final saveLabel = _isEditingMission ? 'Guardar cambios' : 'Guardar misión';
 
     return AppBackground(
       child: Scaffold(
@@ -275,7 +291,12 @@ class _ParentScreenState extends State<ParentScreen> {
               const SizedBox(height: 16),
               _buildRewardSection(),
               const SizedBox(height: 20),
-              _buildActions(canSaveMission, canStartMission, canClearMission),
+              _buildActions(
+                canSaveMission,
+                canStartMission,
+                canClearMission,
+                saveLabel,
+              ),
             ],
           ),
         ),
@@ -322,6 +343,11 @@ class _ParentScreenState extends State<ParentScreen> {
   }
 
   Widget _buildMissionHeader() {
+    final modeLabel = _isEditingMission ? 'Editando misión' : 'Modo Padre';
+    final title = _isEditingMission
+        ? 'Edita la misión de compra'
+        : 'Crea la misión de compra';
+
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -383,8 +409,8 @@ class _ParentScreenState extends State<ParentScreen> {
                           color: Colors.white.withValues(alpha: 0.26),
                         ),
                       ),
-                      child: const Text(
-                        'Modo Padre',
+                      child: Text(
+                        modeLabel,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -393,8 +419,8 @@ class _ParentScreenState extends State<ParentScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Crea la misión de compra',
+                    Text(
+                      title,
                       style: TextStyle(
                         fontSize: 23,
                         height: 1.05,
@@ -784,6 +810,7 @@ class _ParentScreenState extends State<ParentScreen> {
     bool canSaveMission,
     bool canStartMission,
     bool canClearMission,
+    String saveLabel,
   ) {
     return Column(
       children: [
@@ -793,9 +820,9 @@ class _ParentScreenState extends State<ParentScreen> {
           child: FilledButton.icon(
             onPressed: canSaveMission ? _saveMission : null,
             icon: const Icon(Icons.save_alt_rounded),
-            label: const Text(
-              'Guardar misión',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            label: Text(
+              saveLabel,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
             ),
           ),
         ),
@@ -827,6 +854,10 @@ class _ParentScreenState extends State<ParentScreen> {
         ),
       ],
     );
+  }
+
+  String get _savedMessage {
+    return _isEditingMission ? 'Cambios guardados' : 'Misión guardada';
   }
 
   InputDecoration _inputDecoration({
