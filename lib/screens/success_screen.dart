@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/app_background.dart';
+import 'mission_list_screen.dart';
 
 class SuccessScreen extends StatelessWidget {
   final String reward;
@@ -227,7 +228,11 @@ class SuccessScreen extends StatelessWidget {
   Widget _buildReturnButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.pop(context);
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MissionListScreen()),
+          (route) => false,
+        );
       },
       child: Container(
         width: double.infinity,
@@ -247,7 +252,7 @@ class SuccessScreen extends StatelessWidget {
           ],
         ),
         child: const Text(
-          'Volver al inicio',
+          'Volver a mis misiones',
           style: TextStyle(
             color: Colors.white,
             fontSize: 17,

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../models/detection_result.dart';
 import '../models/product_item.dart';
 import '../models/shopping_mission.dart';
 import '../services/mission_storage_service.dart';
+import '../services/product_detection_service.dart';
 import '../theme/product_visual_style.dart';
 import '../widgets/app_background.dart';
 import 'success_screen.dart';
@@ -21,6 +23,8 @@ class ExplorerScreen extends StatefulWidget {
 class _ExplorerScreenState extends State<ExplorerScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   final MissionStorageService _storageService = MissionStorageService();
+  final ProductDetectionService _detectionService =
+      const ProductDetectionService();
   late ShoppingMission mission;
   late List<ProductItem> products;
   bool _isOpeningCamera = false;
@@ -48,7 +52,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
     return products.where((product) => product.isFound).toList();
   }
 
-  Future<void> takePhoto() async {
+  Future<void> _handleTakePhoto() async {
     if (_isOpeningCamera) {
       return;
     }
@@ -73,7 +77,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
         return;
       }
 
-      showSimulatedDetection();
+      await _processCapturedImage(photo.path);
     } on PlatformException {
       if (mounted) {
         _showMessage('No se pudo abrir la cámara');
@@ -91,53 +95,95 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
     }
   }
 
-  Future<void> simulateProductFound(ProductItem product) async {
-    if (!product.isFound) {
-      final updatedProducts = products
-          .map(
-            (item) =>
-                item.id == product.id ? item.copyWith(isFound: true) : item,
-          )
-          .toList();
-      final completed = updatedProducts.every((product) => product.isFound);
-      final updatedMission = mission.copyWith(
-        products: updatedProducts,
-        completed: completed,
-        updatedAt: DateTime.now(),
-      );
+  Future<void> _processCapturedImage(String imagePath) async {
+    final detectionResult = await _detectionService.detectProductFromImage(
+      imagePath: imagePath,
+      pendingProducts: pendingProducts,
+    );
 
-      setState(() {
-        products = updatedProducts;
-        mission = updatedMission;
-      });
+    if (!mounted) {
+      return;
+    }
 
-      await _storageService.updateActiveMission(updatedMission);
+    if (detectionResult == null) {
+      _showManualDetectionPicker(imagePath: imagePath);
+      return;
+    }
+
+    final appliedResult = await _applyDetectionResult(detectionResult);
+
+    if (!appliedResult && mounted) {
+      _showManualDetectionPicker(imagePath: imagePath);
+    }
+  }
+
+  Future<bool> _applyDetectionResult(DetectionResult result) async {
+    final detectedProduct = _productForDetection(result);
+
+    if (detectedProduct == null) {
+      return false;
+    }
+
+    final updatedProducts = products
+        .map(
+          (item) => item.id == detectedProduct.id
+              ? item.copyWith(isFound: true)
+              : item,
+        )
+        .toList();
+    final completed = updatedProducts.every((product) => product.isFound);
+    final updatedMission = mission.copyWith(
+      products: updatedProducts,
+      completed: completed,
+      updatedAt: DateTime.now(),
+    );
+
+    setState(() {
+      products = updatedProducts;
+      mission = updatedMission;
+    });
+
+    await _storageService.updateActiveMission(updatedMission);
+
+    if (!mounted) {
+      return true;
+    }
+
+    if (completed) {
+      await _storageService.completeMission(mission.id);
 
       if (!mounted) {
-        return;
+        return true;
       }
 
-      if (completed) {
-        await _storageService.completeMission(mission.id);
-
+      Future.delayed(const Duration(milliseconds: 400), () {
         if (!mounted) {
           return;
         }
 
-        Future.delayed(const Duration(milliseconds: 400), () {
-          if (!mounted) {
-            return;
-          }
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SuccessScreen(reward: mission.rewardDisplayText),
+          ),
+        );
+      });
+    }
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SuccessScreen(reward: mission.rewardDisplayText),
-            ),
-          );
-        });
+    return true;
+  }
+
+  ProductItem? _productForDetection(DetectionResult result) {
+    final detectedName = result.productName.trim().toLowerCase();
+
+    for (final product in products) {
+      if (!product.isFound &&
+          product.name.trim().toLowerCase() == detectedName) {
+        return product;
       }
     }
+
+    return null;
   }
 
   void _showMessage(String message) {
@@ -146,7 +192,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void showSimulatedDetection() {
+  void _showManualDetectionPicker({String? imagePath}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -191,7 +237,10 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ...products.map(_buildDetectionOption),
+                  ...products.map(
+                    (product) =>
+                        _buildDetectionOption(product, imagePath: imagePath),
+                  ),
                 ],
               ),
             ),
@@ -456,7 +505,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
     final isDisabled = pendingProducts.isEmpty || _isOpeningCamera;
 
     return GestureDetector(
-      onTap: isDisabled ? null : takePhoto,
+      onTap: isDisabled ? null : _handleTakePhoto,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 180),
         opacity: isDisabled ? 0.58 : 1,
@@ -543,7 +592,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
     );
   }
 
-  Widget _buildDetectionOption(ProductItem product) {
+  Widget _buildDetectionOption(ProductItem product, {String? imagePath}) {
     final style = productVisualStyleFor(product);
     final isFound = product.isFound;
 
@@ -586,7 +635,14 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
               ? null
               : () {
                   Navigator.pop(context);
-                  simulateProductFound(product);
+                  _applyDetectionResult(
+                    DetectionResult(
+                      productName: product.name,
+                      confidence: 1,
+                      isAutomatic: false,
+                      imagePath: imagePath,
+                    ),
+                  );
                 },
         ),
       ),
