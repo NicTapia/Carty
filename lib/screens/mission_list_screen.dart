@@ -84,7 +84,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
             ),
           ),
           content: Text(
-            '¿Quieres eliminar "${mission.title}"?',
+            '¿Quieres eliminar "${mission.displayTitle}"?',
             style: const TextStyle(
               color: Color(0xFF7A624D),
               fontWeight: FontWeight.w700,
@@ -409,7 +409,7 @@ class _MissionCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          mission.title,
+                          mission.displayTitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

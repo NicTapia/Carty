@@ -62,6 +62,16 @@ class ShoppingMission {
 
   Reward get reward => Reward(name: rewardName, emoji: rewardEmoji);
 
+  String get displayTitle {
+    final trimmedTitle = title.trim();
+
+    if (trimmedTitle.isEmpty) {
+      return 'Misión de compra';
+    }
+
+    return trimmedTitle;
+  }
+
   String get rewardDisplayText => reward.displayText;
 
   int get foundProductsCount {
@@ -139,7 +149,7 @@ class ShoppingMission {
 
     return ShoppingMission(
       id: json['id'] as String? ?? _createMissionId(),
-      title: json['title'] as String? ?? 'Misión de compra',
+      title: _readTitle(json['title']),
       products: products,
       rewardName: rewardName ?? parsedLegacyReward?.name ?? '',
       rewardEmoji: rewardEmoji ?? parsedLegacyReward?.emoji ?? '🎁',
@@ -174,6 +184,14 @@ class ShoppingMission {
     }
 
     return DateTime.tryParse(value);
+  }
+
+  static String _readTitle(Object? value) {
+    if (value is! String || value.trim().isEmpty) {
+      return 'Misión de compra';
+    }
+
+    return value.trim();
   }
 
   static String _createMissionId() {

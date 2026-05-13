@@ -19,6 +19,7 @@ class ParentScreen extends StatefulWidget {
 }
 
 class _ParentScreenState extends State<ParentScreen> {
+  final TextEditingController _missionTitleController = TextEditingController();
   final TextEditingController _customProductController =
       TextEditingController();
   final MissionStorageService _storageService = MissionStorageService();
@@ -29,10 +30,12 @@ class _ParentScreenState extends State<ParentScreen> {
   String? _selectedReward;
   String? _savedReward;
   bool _missionSaved = false;
+  bool _isUpdatingMissionTitle = false;
 
   @override
   void initState() {
     super.initState();
+    _missionTitleController.addListener(_handleMissionTitleChanged);
     if (!widget.createNewMission) {
       _loadSavedMission();
     }
@@ -40,8 +43,21 @@ class _ParentScreenState extends State<ParentScreen> {
 
   @override
   void dispose() {
+    _missionTitleController.removeListener(_handleMissionTitleChanged);
+    _missionTitleController.dispose();
     _customProductController.dispose();
     super.dispose();
+  }
+
+  void _handleMissionTitleChanged() {
+    if (!mounted || _isUpdatingMissionTitle) {
+      return;
+    }
+
+    setState(() {
+      _missionSaved = false;
+      _savedReward = null;
+    });
   }
 
   void _addProduct(ProductItem product) {
@@ -91,6 +107,12 @@ class _ParentScreenState extends State<ParentScreen> {
     });
   }
 
+  void _setMissionTitleText(String title) {
+    _isUpdatingMissionTitle = true;
+    _missionTitleController.text = title;
+    _isUpdatingMissionTitle = false;
+  }
+
   Future<void> _loadSavedMission() async {
     final savedMission = await _storageService.loadMission();
 
@@ -101,6 +123,7 @@ class _ParentScreenState extends State<ParentScreen> {
     if (savedMission == null) {
       setState(() {
         _activeMission = null;
+        _setMissionTitleText('');
         _selectedReward = null;
         _savedReward = null;
         _missionSaved = false;
@@ -110,6 +133,7 @@ class _ParentScreenState extends State<ParentScreen> {
 
     setState(() {
       _activeMission = savedMission;
+      _setMissionTitleText(savedMission.displayTitle);
       _missionProducts = savedMission.products;
       _selectedReward = savedMission.rewardDisplayText;
       _savedReward = savedMission.rewardDisplayText;
@@ -129,8 +153,9 @@ class _ParentScreenState extends State<ParentScreen> {
 
   Future<void> _saveMission() async {
     final selectedReward = _selectedReward;
+    final missionTitle = _missionTitleController.text.trim();
 
-    if (selectedReward == null) {
+    if (missionTitle.isEmpty || selectedReward == null) {
       return;
     }
 
@@ -141,11 +166,13 @@ class _ParentScreenState extends State<ParentScreen> {
     final activeMission = _activeMission;
     final mission = activeMission == null
         ? ShoppingMission.create(
+            title: missionTitle,
             products: missionProducts,
             rewardName: reward.name,
             rewardEmoji: reward.emoji,
           )
         : activeMission.copyWith(
+            title: missionTitle,
             products: missionProducts,
             rewardName: reward.name,
             rewardEmoji: reward.emoji,
@@ -181,6 +208,7 @@ class _ParentScreenState extends State<ParentScreen> {
 
     setState(() {
       _activeMission = null;
+      _setMissionTitleText('');
       _missionProducts = [];
       _selectedReward = null;
       _savedReward = null;
@@ -216,10 +244,15 @@ class _ParentScreenState extends State<ParentScreen> {
       );
     }).toList();
     final canSaveMission =
-        _missionProducts.isNotEmpty && _selectedReward != null;
+        _missionTitleController.text.trim().isNotEmpty &&
+        _missionProducts.isNotEmpty &&
+        _selectedReward != null;
     final canStartMission = _missionSaved && _savedReward != null;
     final canClearMission =
-        _missionProducts.isNotEmpty || _selectedReward != null || _missionSaved;
+        _missionTitleController.text.trim().isNotEmpty ||
+        _missionProducts.isNotEmpty ||
+        _selectedReward != null ||
+        _missionSaved;
 
     return AppBackground(
       child: Scaffold(
@@ -232,6 +265,8 @@ class _ParentScreenState extends State<ParentScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
             children: [
+              _buildMissionNameSection(),
+              const SizedBox(height: 16),
               _buildProductSelector(availableSuggestedProducts),
               const SizedBox(height: 16),
               _buildShoppingList(),
@@ -244,6 +279,44 @@ class _ParentScreenState extends State<ParentScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMissionNameSection() {
+    return _ParentPanel(
+      padding: const EdgeInsets.all(16),
+      backgroundColor: const Color(0xEFFFF1E8),
+      borderColor: const Color(0xFFFFB995),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFFF2E8), Color(0xFFFFDCCB)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Nombre de la misión',
+            subtitle: 'Ponle un nombre fácil de reconocer',
+            titleSize: 18,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _missionTitleController,
+            decoration: _inputDecoration(
+              label: 'Nombre de la misión',
+              hint: 'Ej: Compra semanal',
+              icon: Icons.flag_rounded,
+              compact: true,
+              fillColor: Colors.white,
+              borderColor: const Color(0xFFFFB995),
+              iconColor: const Color(0xFFFF7A3D),
+            ),
+            textCapitalization: TextCapitalization.sentences,
+            textInputAction: TextInputAction.next,
+          ),
+        ],
       ),
     );
   }
@@ -759,6 +832,7 @@ class _ParentScreenState extends State<ParentScreen> {
   InputDecoration _inputDecoration({
     required String label,
     required IconData icon,
+    String? hint,
     bool compact = false,
     Color fillColor = const Color(0xFFFFFCF7),
     Color borderColor = const Color(0xFFFFD9A3),
@@ -767,6 +841,7 @@ class _ParentScreenState extends State<ParentScreen> {
     return InputDecoration(
       isDense: compact,
       labelText: label,
+      hintText: hint,
       prefixIcon: Icon(icon, color: iconColor),
       filled: true,
       fillColor: fillColor,
