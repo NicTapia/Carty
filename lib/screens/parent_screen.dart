@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../data/sample_mission.dart';
 import '../models/product_item.dart';
+import '../models/reward.dart';
+import '../models/shopping_mission.dart';
 import '../services/mission_storage_service.dart';
 import '../theme/product_visual_style.dart';
 import '../widgets/app_background.dart';
@@ -19,6 +21,7 @@ class _ParentScreenState extends State<ParentScreen> {
       TextEditingController();
   final MissionStorageService _storageService = MissionStorageService();
   List<ProductItem> _missionProducts = List.from(sampleProducts);
+  ShoppingMission? _activeMission;
 
   ProductCategory _selectedCategory = productCategories.first;
   String? _selectedReward;
@@ -48,7 +51,9 @@ class _ParentScreenState extends State<ParentScreen> {
     }
 
     setState(() {
-      _missionProducts.add(product.copyWith(isFound: false));
+      _missionProducts.add(
+        product.copyWith(isFound: false).withGeneratedIdIfNeeded(),
+      );
       _missionSaved = false;
       _savedReward = null;
     });
@@ -61,7 +66,14 @@ class _ParentScreenState extends State<ParentScreen> {
       return;
     }
 
-    _addProduct(ProductItem(name: productName, emoji: _selectedCategory.emoji));
+    _addProduct(
+      ProductItem.create(
+        name: productName,
+        emoji: _selectedCategory.emoji,
+        isCustom: true,
+        colorKey: _selectedCategory.name.toLowerCase(),
+      ),
+    );
     _customProductController.clear();
     FocusManager.instance.primaryFocus?.unfocus();
   }
@@ -69,6 +81,7 @@ class _ParentScreenState extends State<ParentScreen> {
   void _removeProduct(ProductItem product) {
     setState(() {
       _missionProducts.remove(product);
+      _activeMission = _activeMission?.copyWith(products: _missionProducts);
       _missionSaved = false;
       _savedReward = null;
     });
@@ -77,16 +90,28 @@ class _ParentScreenState extends State<ParentScreen> {
   Future<void> _loadSavedMission() async {
     final savedMission = await _storageService.loadMission();
 
-    if (!mounted || savedMission == null) {
+    if (!mounted) {
+      return;
+    }
+
+    if (savedMission == null) {
+      setState(() {
+        _activeMission = null;
+        _selectedReward = null;
+        _savedReward = null;
+        _missionSaved = false;
+      });
       return;
     }
 
     setState(() {
+      _activeMission = savedMission;
       _missionProducts = savedMission.products;
-      _selectedReward = savedMission.reward;
-      _savedReward = savedMission.reward;
+      _selectedReward = savedMission.rewardDisplayText;
+      _savedReward = savedMission.rewardDisplayText;
       _missionSaved =
-          savedMission.products.isNotEmpty && savedMission.reward.isNotEmpty;
+          savedMission.products.isNotEmpty &&
+          savedMission.rewardName.isNotEmpty;
     });
   }
 
@@ -99,23 +124,42 @@ class _ParentScreenState extends State<ParentScreen> {
   }
 
   Future<void> _saveMission() async {
-    final reward = _selectedReward;
+    final selectedReward = _selectedReward;
 
-    if (reward == null) {
+    if (selectedReward == null) {
       return;
     }
 
-    await _storageService.saveMission(
-      products: _missionProducts,
-      reward: reward,
-    );
+    final reward = Reward.fromDisplayText(selectedReward);
+    final missionProducts = _missionProducts
+        .map((product) => product.withGeneratedIdIfNeeded())
+        .toList();
+    final activeMission = _activeMission;
+    final mission = activeMission == null
+        ? ShoppingMission.create(
+            products: missionProducts,
+            rewardName: reward.name,
+            rewardEmoji: reward.emoji,
+          )
+        : activeMission.copyWith(
+            products: missionProducts,
+            rewardName: reward.name,
+            rewardEmoji: reward.emoji,
+            completed: false,
+            isActive: true,
+            updatedAt: DateTime.now(),
+          );
+
+    await _storageService.saveMission(mission);
 
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _savedReward = reward;
+      _activeMission = mission;
+      _missionProducts = mission.products;
+      _savedReward = mission.rewardDisplayText;
       _missionSaved = true;
     });
 
@@ -132,6 +176,7 @@ class _ParentScreenState extends State<ParentScreen> {
     }
 
     setState(() {
+      _activeMission = null;
       _missionProducts = [];
       _selectedReward = null;
       _savedReward = null;
@@ -144,22 +189,15 @@ class _ParentScreenState extends State<ParentScreen> {
   }
 
   Future<void> _startExplorerMode() async {
-    final reward = _savedReward;
+    final activeMission = _activeMission;
 
-    if (reward == null) {
+    if (activeMission == null) {
       return;
     }
 
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => ExplorerScreen(
-          products: _missionProducts
-              .map((product) => product.copyWith())
-              .toList(),
-          reward: reward,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => ExplorerScreen(mission: activeMission)),
     );
 
     await _loadSavedMission();

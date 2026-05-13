@@ -3,20 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/product_item.dart';
+import '../models/shopping_mission.dart';
 import '../services/mission_storage_service.dart';
 import '../theme/product_visual_style.dart';
 import '../widgets/app_background.dart';
 import 'success_screen.dart';
 
 class ExplorerScreen extends StatefulWidget {
-  final List<ProductItem> products;
-  final String reward;
+  final ShoppingMission mission;
 
-  const ExplorerScreen({
-    super.key,
-    required this.products,
-    required this.reward,
-  });
+  const ExplorerScreen({super.key, required this.mission});
 
   @override
   State<ExplorerScreen> createState() => _ExplorerScreenState();
@@ -25,21 +21,23 @@ class ExplorerScreen extends StatefulWidget {
 class _ExplorerScreenState extends State<ExplorerScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   final MissionStorageService _storageService = MissionStorageService();
+  late ShoppingMission mission;
   late List<ProductItem> products;
   bool _isOpeningCamera = false;
 
   @override
   void initState() {
     super.initState();
-    products = List.from(widget.products);
+    mission = widget.mission;
+    products = List.from(widget.mission.products);
   }
 
   double get progress {
-    if (widget.products.isEmpty) {
+    if (mission.products.isEmpty) {
       return 0;
     }
 
-    return foundProducts.length / widget.products.length;
+    return foundProducts.length / mission.products.length;
   }
 
   List<ProductItem> get pendingProducts {
@@ -95,26 +93,37 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
 
   Future<void> simulateProductFound(ProductItem product) async {
     if (!product.isFound) {
+      final updatedProducts = products
+          .map(
+            (item) =>
+                item.id == product.id ? item.copyWith(isFound: true) : item,
+          )
+          .toList();
+      final completed = updatedProducts.every((product) => product.isFound);
+      final updatedMission = mission.copyWith(
+        products: updatedProducts,
+        completed: completed,
+        updatedAt: DateTime.now(),
+      );
+
       setState(() {
-        products = products
-            .map(
-              (item) => item.name == product.name
-                  ? item.copyWith(isFound: true)
-                  : item,
-            )
-            .toList();
+        products = updatedProducts;
+        mission = updatedMission;
       });
 
-      await _storageService.saveMission(
-        products: products,
-        reward: widget.reward,
-      );
+      await _storageService.updateActiveMission(updatedMission);
 
       if (!mounted) {
         return;
       }
 
-      if (foundProducts.length == widget.products.length) {
+      if (completed) {
+        await _storageService.completeMission(mission.id);
+
+        if (!mounted) {
+          return;
+        }
+
         Future.delayed(const Duration(milliseconds: 400), () {
           if (!mounted) {
             return;
@@ -123,7 +132,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => SuccessScreen(reward: widget.reward),
+              builder: (_) => SuccessScreen(reward: mission.rewardDisplayText),
             ),
           );
         });
@@ -201,7 +210,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           preferredSize: const Size.fromHeight(170),
           child: _buildExplorerHeader(),
         ),
-        body: widget.products.isEmpty
+        body: mission.products.isEmpty
             ? _buildEmptyMission()
             : Padding(
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
@@ -331,7 +340,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            widget.reward,
+            mission.rewardDisplayText,
             style: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
@@ -340,7 +349,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           ),
           const SizedBox(height: 14),
           Text(
-            '${foundProducts.length} de ${widget.products.length} productos encontrados',
+            '${foundProducts.length} de ${mission.products.length} productos encontrados',
             style: const TextStyle(
               fontSize: 14.5,
               fontWeight: FontWeight.w700,

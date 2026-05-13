@@ -1,24 +1,24 @@
 import '../models/product_item.dart';
 
 const sampleProducts = [
-  ProductItem(name: 'Leche', emoji: '🥛'),
-  ProductItem(name: 'Pan', emoji: '🍞'),
-  ProductItem(name: 'Huevos', emoji: '🥚'),
-  ProductItem(name: 'Yogurt', emoji: '🥣'),
-  ProductItem(name: 'Manzana', emoji: '🍎'),
+  ProductItem(id: 'sample-leche', name: 'Leche', emoji: '🥛'),
+  ProductItem(id: 'sample-pan', name: 'Pan', emoji: '🍞'),
+  ProductItem(id: 'sample-huevos', name: 'Huevos', emoji: '🥚'),
+  ProductItem(id: 'sample-yogurt', name: 'Yogurt', emoji: '🥣'),
+  ProductItem(id: 'sample-manzana', name: 'Manzana', emoji: '🍎'),
 ];
 
 const suggestedProducts = [
-  ProductItem(name: 'Leche', emoji: '🥛'),
-  ProductItem(name: 'Pan', emoji: '🍞'),
-  ProductItem(name: 'Huevos', emoji: '🥚'),
-  ProductItem(name: 'Manzana', emoji: '🍎'),
-  ProductItem(name: 'Plátano', emoji: '🍌'),
-  ProductItem(name: 'Yogurt', emoji: '🥣'),
-  ProductItem(name: 'Arroz', emoji: '🍚'),
-  ProductItem(name: 'Queso', emoji: '🧀'),
-  ProductItem(name: 'Pollo', emoji: '🍗'),
-  ProductItem(name: 'Jugo', emoji: '🥤'),
+  ProductItem(id: 'suggested-leche', name: 'Leche', emoji: '🥛'),
+  ProductItem(id: 'suggested-pan', name: 'Pan', emoji: '🍞'),
+  ProductItem(id: 'suggested-huevos', name: 'Huevos', emoji: '🥚'),
+  ProductItem(id: 'suggested-manzana', name: 'Manzana', emoji: '🍎'),
+  ProductItem(id: 'suggested-platano', name: 'Plátano', emoji: '🍌'),
+  ProductItem(id: 'suggested-yogurt', name: 'Yogurt', emoji: '🥣'),
+  ProductItem(id: 'suggested-arroz', name: 'Arroz', emoji: '🍚'),
+  ProductItem(id: 'suggested-queso', name: 'Queso', emoji: '🧀'),
+  ProductItem(id: 'suggested-pollo', name: 'Pollo', emoji: '🍗'),
+  ProductItem(id: 'suggested-jugo', name: 'Jugo', emoji: '🥤'),
 ];
 
 const productCategories = [

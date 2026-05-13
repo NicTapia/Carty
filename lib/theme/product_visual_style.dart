@@ -56,7 +56,9 @@ const Map<String, int> _knownProductColorIndexes = {
 };
 
 ProductVisualStyle productVisualStyleFor(ProductItem product) {
-  final normalizedName = _normalizeProductName(product.name);
+  final normalizedName = _normalizeProductName(
+    product.colorKey ?? product.name,
+  );
   final knownIndex = _knownProductColorIndexes[normalizedName];
 
   if (knownIndex != null) {
