@@ -160,19 +160,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
                 return _buildEmptyState();
               }
 
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-                itemBuilder: (context, index) {
-                  return _MissionCard(
-                    mission: missions[index],
-                    onTap: () => _continueMission(missions[index]),
-                    onEdit: () => _editMission(missions[index]),
-                    onDelete: () => _deleteMission(missions[index]),
-                  );
-                },
-                separatorBuilder: (_, _) => const SizedBox(height: 14),
-                itemCount: missions.length,
-              );
+              return _buildMissionSections(missions);
             },
           ),
         ),
@@ -187,6 +175,78 @@ class _MissionListScreenState extends State<MissionListScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMissionSections(List<ShoppingMission> missions) {
+    final activeMissions = missions
+        .where((mission) => !mission.completed)
+        .toList();
+    final completedMissions = missions
+        .where((mission) => mission.completed)
+        .toList();
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 96),
+      children: [
+        _CreateMissionBanner(onCreate: _createMission),
+        const SizedBox(height: 18),
+        _MissionSectionHeader(
+          title: 'Activas / pendientes',
+          count: activeMissions.length,
+          icon: Icons.explore_rounded,
+          color: const Color(0xFF536DFE),
+        ),
+        const SizedBox(height: 10),
+        if (activeMissions.isEmpty)
+          const _SmallEmptyMessage(
+            message: 'No tienes misiones activas por ahora.',
+            icon: Icons.schedule_rounded,
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (context, index) {
+              final mission = activeMissions[index];
+
+              return _MissionCard(
+                mission: mission,
+                onTap: () => _continueMission(mission),
+                onEdit: () => _editMission(mission),
+                onDelete: () => _deleteMission(mission),
+              );
+            },
+            separatorBuilder: (_, _) => const SizedBox(height: 14),
+            itemCount: activeMissions.length,
+          ),
+        if (completedMissions.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          _MissionSectionHeader(
+            title: 'Misiones completadas',
+            count: completedMissions.length,
+            icon: Icons.check_circle_rounded,
+            color: const Color(0xFF35A853),
+          ),
+          const SizedBox(height: 10),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (context, index) {
+              final mission = completedMissions[index];
+
+              return _MissionCard(
+                mission: mission,
+                onTap: () => _continueMission(mission),
+                onEdit: () => _editMission(mission),
+                onDelete: () => _deleteMission(mission),
+              );
+            },
+            separatorBuilder: (_, _) => const SizedBox(height: 14),
+            itemCount: completedMissions.length,
+          ),
+        ],
+      ],
     );
   }
 
@@ -323,7 +383,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Crea una lista y Carty la convertirá en aventura.',
+                'Crea tu primera aventura de compras',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15.5,
@@ -351,6 +411,189 @@ class _MissionListScreenState extends State<MissionListScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CreateMissionBanner extends StatelessWidget {
+  final VoidCallback onCreate;
+
+  const _CreateMissionBanner({required this.onCreate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF2E8), Color(0xFFEFE8FF)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFFFB995)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF7A3D).withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.74),
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: const Color(0xFFFFC982)),
+            ),
+            child: const Icon(
+              Icons.add_task_rounded,
+              color: Color(0xFFFF7A3D),
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 13),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Nueva aventura',
+                  style: TextStyle(
+                    color: Color(0xFF4F321B),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Crea una lista para la próxima compra.',
+                  style: TextStyle(
+                    color: Color(0xFF7A624D),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          FilledButton(
+            onPressed: onCreate,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFF7A3D),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(82, 44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+            child: const Text(
+              'Crear',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MissionSectionHeader extends StatelessWidget {
+  final String title;
+  final int count;
+  final IconData icon;
+  final Color color;
+
+  const _MissionSectionHeader({
+    required this.title,
+    required this.count,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.24)),
+          ),
+          child: Icon(icon, size: 20, color: color),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              height: 1.05,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF4F321B),
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.76),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: color.withValues(alpha: 0.24)),
+          ),
+          child: Text(
+            '$count',
+            style: TextStyle(color: color, fontWeight: FontWeight.w900),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SmallEmptyMessage extends StatelessWidget {
+  final String message;
+  final IconData icon;
+
+  const _SmallEmptyMessage({required this.message, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.66),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFFD9A3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFFFF7A3D), size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Color(0xFF7A624D),
+                fontSize: 14.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -424,7 +667,7 @@ class _MissionCard extends StatelessWidget {
                       children: [
                         Text(
                           mission.displayTitle,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 20,
@@ -435,9 +678,7 @@ class _MissionCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          totalCount == 1
-                              ? '1 producto'
-                              : '$totalCount productos',
+                          _updatedLabel(mission.updatedAt),
                           style: const TextStyle(
                             fontSize: 14.5,
                             fontWeight: FontWeight.w700,
@@ -447,32 +688,8 @@ class _MissionCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: 'Editar misión',
-                        onPressed: onEdit,
-                        icon: const Icon(Icons.edit_rounded),
-                        color: const Color(0xFF536DFE),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.72),
-                          fixedSize: const Size(40, 40),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      IconButton(
-                        tooltip: 'Eliminar misión',
-                        onPressed: onDelete,
-                        icon: const Icon(Icons.delete_outline_rounded),
-                        color: const Color(0xFF9A4A68),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.72),
-                          fixedSize: const Size(40, 40),
-                        ),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(width: 10),
+                  _StatusPill(status: status),
                 ],
               ),
               const SizedBox(height: 14),
@@ -480,7 +697,7 @@ class _MissionCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      '$foundCount / $totalCount encontrados',
+                      '${_productCountLabel(totalCount)} · $foundCount / $totalCount encontrados',
                       style: const TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w800,
@@ -488,7 +705,6 @@ class _MissionCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _StatusPill(status: status),
                 ],
               ),
               const SizedBox(height: 9),
@@ -518,11 +734,87 @@ class _MissionCard extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 13),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: onTap,
+                      icon: Icon(status.actionIcon),
+                      label: Text(status.actionLabel),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: status.pillColor,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 44),
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Editar misión',
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit_rounded),
+                    color: const Color(0xFF536DFE),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.74),
+                      fixedSize: const Size(44, 44),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: 'Eliminar misión',
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    color: const Color(0xFF9A4A68),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.74),
+                      fixedSize: const Size(44, 44),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _productCountLabel(int totalCount) {
+    return totalCount == 1 ? '1 producto' : '$totalCount productos';
+  }
+
+  String _updatedLabel(DateTime updatedAt) {
+    final now = DateTime.now();
+    final difference = now.difference(updatedAt);
+
+    if (difference.inMinutes < 60) {
+      return 'Actualizada recientemente';
+    }
+
+    if (difference.inHours < 24) {
+      return 'Actualizada hoy';
+    }
+
+    if (difference.inDays == 1) {
+      return 'Actualizada ayer';
+    }
+
+    return 'Actualizada ${_formatDate(updatedAt)}';
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+
+    return '$day/$month/${date.year}';
   }
 }
 
@@ -595,14 +887,18 @@ class _MissionProgressBar extends StatelessWidget {
 
 class _MissionStatus {
   final String label;
+  final String actionLabel;
   final IconData icon;
+  final IconData actionIcon;
   final Color pillColor;
   final Color borderColor;
   final Gradient cardGradient;
 
   const _MissionStatus({
     required this.label,
+    required this.actionLabel,
     required this.icon,
+    required this.actionIcon,
     required this.pillColor,
     required this.borderColor,
     required this.cardGradient,
@@ -612,7 +908,9 @@ class _MissionStatus {
     if (mission.completed) {
       return const _MissionStatus(
         label: 'Completada',
+        actionLabel: 'Ver misión',
         icon: Icons.check_circle_rounded,
+        actionIcon: Icons.visibility_rounded,
         pillColor: Color(0xFF35A853),
         borderColor: Color(0xFF78D4C4),
         cardGradient: LinearGradient(
@@ -626,7 +924,9 @@ class _MissionStatus {
     if (mission.isActive) {
       return const _MissionStatus(
         label: 'Activa',
+        actionLabel: 'Continuar',
         icon: Icons.explore_rounded,
+        actionIcon: Icons.play_arrow_rounded,
         pillColor: Color(0xFF536DFE),
         borderColor: Color(0xFF92B9FF),
         cardGradient: LinearGradient(
@@ -639,7 +939,9 @@ class _MissionStatus {
 
     return const _MissionStatus(
       label: 'Pendiente',
+      actionLabel: 'Continuar',
       icon: Icons.schedule_rounded,
+      actionIcon: Icons.play_arrow_rounded,
       pillColor: Color(0xFFFF7A3D),
       borderColor: Color(0xFFFFB995),
       cardGradient: LinearGradient(
